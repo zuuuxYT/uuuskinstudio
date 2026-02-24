@@ -3,203 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <title>uuuSkinStudio</title>
-<script src="https://unpkg.com/skinview3d/bundles/skinview3d.bundle.js"></script>
+<script src="https://unpkg.com/skinview3d@latest/bundles/skinview3d.bundle.js"></script>
 <style>
-body{
-    margin:0;
-    background:#0f0f0f;
-    color:white;
-    font-family:Arial;
+body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
+.topbar{background:#111;padding:15px;display:flex;align-items:center}
+.menu-btn{font-size:24px;cursor:pointer;margin-right:15px}
+.sidebar{
+position:fixed;left:-250px;top:0;width:250px;height:100%;
+background:#1c1c1c;transition:0.3s;padding-top:60px
 }
-header{
-    padding:20px;
-    text-align:center;
-    background:#111;
-    font-size:26px;
-    color:#00f7ff;
-    font-weight:bold;
+.sidebar a{
+display:block;padding:15px;color:white;text-decoration:none
 }
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-    gap:25px;
-    padding:40px;
-}
+.sidebar a:hover{background:#333}
+.content{padding:20px}
 .card{
-    background:#1a1a1a;
-    padding:20px;
-    border-radius:12px;
-    text-align:center;
-    box-shadow:0 0 15px rgba(0,255,255,0.1);
-}
-canvas{
-    width:100%;
-    height:300px;
+background:#1a1a1a;padding:15px;margin:10px;border-radius:10px;
+display:inline-block;width:220px;vertical-align:top
 }
 button{
-    padding:10px 20px;
-    background:#00f7ff;
-    border:none;
-    cursor:pointer;
-    font-weight:bold;
-    border-radius:6px;
+background:#00ffcc;border:none;padding:8px 12px;border-radius:5px;
+cursor:pointer;margin-top:5px
 }
-button:hover{
-    background:#00cfd6;
-}
+.hidden{display:none}
+canvas{width:200px;height:300px}
 .modal{
-    display:none;
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.8);
-    justify-content:center;
-    align-items:center;
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center
 }
-.modal-content{
-    background:#1a1a1a;
-    padding:30px;
-    width:320px;
-    text-align:center;
-    border-radius:10px;
+.modal-box{
+background:#222;padding:20px;border-radius:10px;text-align:center
 }
-input{
-    width:100%;
-    padding:8px;
-    margin-top:10px;
-    border-radius:5px;
-    border:none;
-}
-.footer{
-    text-align:center;
-    padding:20px;
-    background:#111;
-    color:#777;
-}
+input{padding:5px;margin:5px}
 </style>
 </head>
 <body>
 
-<header>uuuSkinStudio</header>
-
-<div class="grid" id="skins"></div>
-
-<div class="modal" id="buyModal">
-<div class="modal-content">
-<h3 id="skinName"></h3>
-<p>Price: RM20</p>
-<p>Send to TNG: <b>0173269519</b></p>
-<input type="text" placeholder="Your Name" id="buyerName">
-<input type="text" placeholder="Transaction Ref" id="txRef">
-<button onclick="submitOrder()">Submit</button>
-<br><br>
-<button onclick="closeModal()">Cancel</button>
-</div>
+<div class="topbar">
+<span class="menu-btn" onclick="toggleMenu()">☰</span>
+<h2>uuuSkinStudio</h2>
 </div>
 
-<div class="footer">
-© 2026 uuuSkinStudio
+<div id="sidebar" class="sidebar">
+<a onclick="showPremium()">高级皮肤 RM10</a>
+<a onclick="showLuxury()">华丽皮肤 RM5</a>
+<hr>
+<a onclick="showProfile()">个人资料</a>
+<a onclick="contactHost()">联络管理者</a>
+</div>
+
+<div class="content" id="main"></div>
+
+<div id="authModal" class="modal">
+<div class="modal-box">
+<h3>登录 / 注册</h3>
+<input id="email" placeholder="Email"><br>
+<input id="phone" placeholder="Phone"><br>
+<input id="password" type="password" placeholder="Password"><br>
+<button onclick="register()">注册</button>
+<button onclick="login()">登录</button>
+</div>
 </div>
 
 <script>
-
-// 自动生成 10 个不同颜色的标准 64x64 Minecraft 皮肤
-function generateSkin(color1,color2){
-    const canvas=document.createElement("canvas");
-    canvas.width=64;
-    canvas.height=64;
-    const ctx=canvas.getContext("2d");
-
-    ctx.fillStyle=color1;
-    ctx.fillRect(0,0,64,64);
-
-    ctx.fillStyle=color2;
-    ctx.fillRect(16,16,32,32);
-
-    return canvas.toDataURL("image/png");
-}
+let currentUser=null
+const HOST_EMAIL="pindaoazhu@gmail.com"
 
 const skins=[
-generateSkin("#1abc9c","#16a085"),
-generateSkin("#3498db","#2980b9"),
-generateSkin("#9b59b6","#8e44ad"),
-generateSkin("#e74c3c","#c0392b"),
-generateSkin("#f1c40f","#f39c12"),
-generateSkin("#2ecc71","#27ae60"),
-generateSkin("#e67e22","#d35400"),
-generateSkin("#34495e","#2c3e50"),
-generateSkin("#ff00ff","#cc00cc"),
-generateSkin("#00ffff","#00cccc")
-];
+{ id:1,name:"Cyber Phantom X",type:"premium",price:10,skin:"skins/cyber.png"},
+{ id:2,name:"Neon Blade Revenant",type:"premium",price:10,skin:"skins/neon.png"},
+{ id:3,name:"Void Strike Commander",type:"premium",price:10,skin:"skins/void.png"},
+{ id:4,name:"Plasma War Mech",type:"premium",price:10,skin:"skins/plasma.png"},
+{ id:5,name:"Shadow Tech Assassin",type:"premium",price:10,skin:"skins/shadow.png"},
 
-let selectedSkin="";
+{ id:6,name:"Bubble Tea Girl",type:"luxury",price:5,skin:"skins/bubble.png"},
+{ id:7,name:"Candy Pop Boy",type:"luxury",price:5,skin:"skins/candy.png"},
+{ id:8,name:"Pixel Bunny",type:"luxury",price:5,skin:"skins/bunny.png"},
+{ id:9,name:"Mochi Hoodie",type:"luxury",price:5,skin:"skins/mochi.png"},
+{ id:10,name:"Kawaii Knight",type:"luxury",price:5,skin:"skins/kawaii.png"},
+{ id:11,name:"Strawberry Pixie",type:"luxury",price:5,skin:"skins/strawberry.png"},
+{ id:12,name:"Dream Cloud Kid",type:"luxury",price:5,skin:"skins/cloud.png"},
+{ id:13,name:"Cartoon Panda",type:"luxury",price:5,skin:"skins/panda.png"},
+{ id:14,name:"Rainbow Hoodie",type:"luxury",price:5,skin:"skins/rainbow.png"},
+{ id:15,name:"Tiny Galaxy Kid",type:"luxury",price:5,skin:"skins/galaxy.png"}
+]
 
-const container=document.getElementById("skins");
-
-skins.forEach((skin,i)=>{
-    const card=document.createElement("div");
-    card.className="card";
-
-    const canvas=document.createElement("canvas");
-    card.appendChild(canvas);
-
-    const viewer=new skinview3d.SkinViewer({
-        canvas:canvas,
-        width:300,
-        height:300,
-        skin:skin
-    });
-
-    viewer.autoRotate=true;
-    viewer.controls.enableZoom=true;
-    viewer.controls.enableRotate=true;
-
-    const title=document.createElement("h3");
-    title.innerText="Premium Skin "+(i+1);
-    card.appendChild(title);
-
-    const btn=document.createElement("button");
-    btn.innerText="Buy RM20";
-    btn.onclick=()=>openModal(skin,title.innerText);
-    card.appendChild(btn);
-
-    container.appendChild(card);
-});
-
-function openModal(skin,name){
-    selectedSkin=skin;
-    document.getElementById("skinName").innerText=name;
-    document.getElementById("buyModal").style.display="flex";
+function toggleMenu(){
+let sb=document.getElementById("sidebar")
+sb.style.left=sb.style.left==="0px"?"-250px":"0px"
 }
 
-function closeModal(){
-    document.getElementById("buyModal").style.display="none";
+function register(){
+let email=email.value
+let phone=phone.value
+let password=password.value
+localStorage.setItem(email,JSON.stringify({email,phone,password,orders:0}))
+alert("注册成功")
 }
 
-function submitOrder(){
-    const name=document.getElementById("buyerName").value;
-    const ref=document.getElementById("txRef").value;
-
-    if(name==""||ref==""){
-        alert("Please fill all fields");
-        return;
-    }
-
-    alert("Order submitted. Admin verifying payment...");
-
-    closeModal();
-
-    setTimeout(()=>{
-        const link=document.createElement("a");
-        link.href=selectedSkin;
-        link.download="uuuSkinStudio.png";
-        link.click();
-        alert("Payment Approved! Skin Downloaded.");
-    },2000);
+function login(){
+let email=document.getElementById("email").value
+let password=document.getElementById("password").value
+let user=JSON.parse(localStorage.getItem(email))
+if(user && user.password===password){
+currentUser=user
+document.getElementById("authModal").classList.add("hidden")
+showPremium()
+}else alert("账号错误")
 }
 
+function renderSkins(type){
+let main=document.getElementById("main")
+main.innerHTML=""
+skins.filter(s=>s.type===type).forEach(s=>{
+let div=document.createElement("div")
+div.className="card"
+div.innerHTML=`<h4>${s.name}</h4>
+<canvas id="skin${s.id}"></canvas>
+<p>RM${s.price}</p>
+<button onclick="buySkin(${s.id})">购买</button>`
+main.appendChild(div)
+
+let viewer=new skinview3d.SkinViewer({
+canvas:div.querySelector("canvas"),
+width:200,height:300,
+skin:s.skin
+})
+viewer.animation= new skinview3d.WalkingAnimation()
+})
+}
+
+function showPremium(){toggleMenu();renderSkins("premium")}
+function showLuxury(){toggleMenu();renderSkins("luxury")}
+
+function showProfile(){
+toggleMenu()
+let main=document.getElementById("main")
+main.innerHTML=`<h3>个人资料</h3>
+<p>Email: ${currentUser.email}</p>
+<p>Phone: ${currentUser.phone}</p>
+<p>已购买: ${currentUser.orders}</p>`
+}
+
+function buySkin(id){
+let skin=skins.find(s=>s.id===id)
+document.body.insertAdjacentHTML("beforeend",`
+<div class="modal" id="payModal">
+<div class="modal-box">
+<h3>扫描二维码付款 RM${skin.price}</h3>
+<img src="tngqr.png" width="200"><br>
+<button onclick="confirmPay(${id})">我已付款</button>
+</div></div>`)
+}
+
+function confirmPay(id){
+let user=JSON.parse(localStorage.getItem(currentUser.email))
+user.orders+=1
+localStorage.setItem(currentUser.email,JSON.stringify(user))
+alert("请联系管理者发送PNG下载链接")
+document.getElementById("payModal").remove()
+}
+
+function contactHost(){
+toggleMenu()
+window.location.href="mailto:"+HOST_EMAIL
+}
 </script>
 
 </body>
