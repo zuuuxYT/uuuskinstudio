@@ -4,13 +4,14 @@
 <meta charset="UTF-8">
 <title>uuuSkinStudio</title>
 <script src="https://unpkg.com/skinview3d@latest/bundles/skinview3d.bundle.js"></script>
+
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 .topbar{background:#111;padding:15px;display:flex;align-items:center}
 .menu-btn{font-size:24px;cursor:pointer;margin-right:15px}
 .sidebar{
 position:fixed;left:-250px;top:0;width:250px;height:100%;
-background:#1c1c1c;transition:0.3s;padding-top:60px
+background:#1c1c1c;transition:0.3s;padding-top:60px;z-index:10
 }
 .sidebar a{
 display:block;padding:15px;color:white;text-decoration:none
@@ -29,14 +30,18 @@ cursor:pointer;margin-top:5px
 canvas{width:200px;height:300px}
 .modal{
 position:fixed;top:0;left:0;width:100%;height:100%;
-background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center
+background:rgba(0,0,0,0.85);
+display:flex;align-items:center;justify-content:center;
+z-index:20
 }
 .modal-box{
 background:#222;padding:20px;border-radius:10px;text-align:center
 }
-input{padding:5px;margin:5px}
+input{padding:8px;margin:5px;width:200px}
+.admin-box{background:#181818;padding:15px;margin-top:20px}
 </style>
 </head>
+
 <body>
 
 <div class="topbar">
@@ -50,6 +55,7 @@ input{padding:5px;margin:5px}
 <hr>
 <a onclick="showProfile()">个人资料</a>
 <a onclick="contactHost()">联络管理者</a>
+<a id="adminBtn" class="hidden" onclick="showAdmin()">订单管理</a>
 </div>
 
 <div class="content" id="main"></div>
@@ -58,7 +64,7 @@ input{padding:5px;margin:5px}
 <div class="modal-box">
 <h3>登录 / 注册</h3>
 <input id="email" placeholder="Email"><br>
-<input id="phone" placeholder="Phone"><br>
+<input id="phone" placeholder="Phone (注册需要)"><br>
 <input id="password" type="password" placeholder="Password"><br>
 <button onclick="register()">注册</button>
 <button onclick="login()">登录</button>
@@ -66,26 +72,37 @@ input{padding:5px;margin:5px}
 </div>
 
 <script>
-let currentUser=null
+
 const HOST_EMAIL="pindaoazhu@gmail.com"
+let currentUser=null
+
+// 初始化 Host
+if(!localStorage.getItem(HOST_EMAIL)){
+localStorage.setItem(HOST_EMAIL,JSON.stringify({
+email:HOST_EMAIL,
+phone:"0173269519",
+password:"host123",
+role:"host",
+orders:0
+}))
+}
 
 const skins=[
-{ id:1,name:"Cyber Phantom X",type:"premium",price:10,skin:"skins/cyber.png"},
-{ id:2,name:"Neon Blade Revenant",type:"premium",price:10,skin:"skins/neon.png"},
-{ id:3,name:"Void Strike Commander",type:"premium",price:10,skin:"skins/void.png"},
-{ id:4,name:"Plasma War Mech",type:"premium",price:10,skin:"skins/plasma.png"},
-{ id:5,name:"Shadow Tech Assassin",type:"premium",price:10,skin:"skins/shadow.png"},
-
-{ id:6,name:"Bubble Tea Girl",type:"luxury",price:5,skin:"skins/bubble.png"},
-{ id:7,name:"Candy Pop Boy",type:"luxury",price:5,skin:"skins/candy.png"},
-{ id:8,name:"Pixel Bunny",type:"luxury",price:5,skin:"skins/bunny.png"},
-{ id:9,name:"Mochi Hoodie",type:"luxury",price:5,skin:"skins/mochi.png"},
-{ id:10,name:"Kawaii Knight",type:"luxury",price:5,skin:"skins/kawaii.png"},
-{ id:11,name:"Strawberry Pixie",type:"luxury",price:5,skin:"skins/strawberry.png"},
-{ id:12,name:"Dream Cloud Kid",type:"luxury",price:5,skin:"skins/cloud.png"},
-{ id:13,name:"Cartoon Panda",type:"luxury",price:5,skin:"skins/panda.png"},
-{ id:14,name:"Rainbow Hoodie",type:"luxury",price:5,skin:"skins/rainbow.png"},
-{ id:15,name:"Tiny Galaxy Kid",type:"luxury",price:5,skin:"skins/galaxy.png"}
+{id:1,name:"Cyber Phantom X",type:"premium",price:10,skin:"skins/cyber.png"},
+{id:2,name:"Neon Blade Revenant",type:"premium",price:10,skin:"skins/neon.png"},
+{id:3,name:"Void Strike Commander",type:"premium",price:10,skin:"skins/void.png"},
+{id:4,name:"Plasma War Mech",type:"premium",price:10,skin:"skins/plasma.png"},
+{id:5,name:"Shadow Tech Assassin",type:"premium",price:10,skin:"skins/shadow.png"},
+{id:6,name:"Bubble Tea Girl",type:"luxury",price:5,skin:"skins/bubble.png"},
+{id:7,name:"Candy Pop Boy",type:"luxury",price:5,skin:"skins/candy.png"},
+{id:8,name:"Pixel Bunny",type:"luxury",price:5,skin:"skins/bunny.png"},
+{id:9,name:"Mochi Hoodie",type:"luxury",price:5,skin:"skins/mochi.png"},
+{id:10,name:"Kawaii Knight",type:"luxury",price:5,skin:"skins/kawaii.png"},
+{id:11,name:"Strawberry Pixie",type:"luxury",price:5,skin:"skins/strawberry.png"},
+{id:12,name:"Dream Cloud Kid",type:"luxury",price:5,skin:"skins/cloud.png"},
+{id:13,name:"Cartoon Panda",type:"luxury",price:5,skin:"skins/panda.png"},
+{id:14,name:"Rainbow Hoodie",type:"luxury",price:5,skin:"skins/rainbow.png"},
+{id:15,name:"Tiny Galaxy Kid",type:"luxury",price:5,skin:"skins/galaxy.png"}
 ]
 
 function toggleMenu(){
@@ -94,22 +111,39 @@ sb.style.left=sb.style.left==="0px"?"-250px":"0px"
 }
 
 function register(){
-let email=email.value
-let phone=phone.value
-let password=password.value
-localStorage.setItem(email,JSON.stringify({email,phone,password,orders:0}))
+let email=document.getElementById("email").value.trim()
+let phone=document.getElementById("phone").value.trim()
+let password=document.getElementById("password").value.trim()
+
+if(!email||!phone||!password){
+alert("填写完整信息")
+return
+}
+if(localStorage.getItem(email)){
+alert("已注册")
+return
+}
+
+localStorage.setItem(email,JSON.stringify({
+email,phone,password,role:"user",orders:0
+}))
 alert("注册成功")
 }
 
 function login(){
-let email=document.getElementById("email").value
-let password=document.getElementById("password").value
+let email=document.getElementById("email").value.trim()
+let password=document.getElementById("password").value.trim()
 let user=JSON.parse(localStorage.getItem(email))
-if(user && user.password===password){
+if(!user||user.password!==password){
+alert("登录失败")
+return
+}
 currentUser=user
 document.getElementById("authModal").classList.add("hidden")
+if(user.role==="host"){
+document.getElementById("adminBtn").classList.remove("hidden")
+}
 showPremium()
-}else alert("账号错误")
 }
 
 function renderSkins(type){
@@ -129,7 +163,7 @@ canvas:div.querySelector("canvas"),
 width:200,height:300,
 skin:s.skin
 })
-viewer.animation= new skinview3d.WalkingAnimation()
+viewer.controls.enableZoom=true
 })
 }
 
@@ -142,7 +176,7 @@ let main=document.getElementById("main")
 main.innerHTML=`<h3>个人资料</h3>
 <p>Email: ${currentUser.email}</p>
 <p>Phone: ${currentUser.phone}</p>
-<p>已购买: ${currentUser.orders}</p>`
+<p>已购买数量: ${currentUser.orders}</p>`
 }
 
 function buySkin(id){
@@ -157,18 +191,38 @@ document.body.insertAdjacentHTML("beforeend",`
 }
 
 function confirmPay(id){
-let user=JSON.parse(localStorage.getItem(currentUser.email))
-user.orders+=1
-localStorage.setItem(currentUser.email,JSON.stringify(user))
-alert("请联系管理者发送PNG下载链接")
+let orders=JSON.parse(localStorage.getItem("orders")||"[]")
+orders.push({
+user:currentUser.email,
+skinId:id,
+status:"pending"
+})
+localStorage.setItem("orders",JSON.stringify(orders))
+alert("订单已提交，请联系管理者获取下载链接")
 document.getElementById("payModal").remove()
+}
+
+function showAdmin(){
+toggleMenu()
+let main=document.getElementById("main")
+let orders=JSON.parse(localStorage.getItem("orders")||"[]")
+main.innerHTML="<h3>订单管理</h3>"
+orders.forEach(o=>{
+let skin=skins.find(s=>s.id===o.skinId)
+main.innerHTML+=`
+<div class="admin-box">
+用户: ${o.user}<br>
+皮肤: ${skin.name}<br>
+状态: ${o.status}
+</div>`
+})
 }
 
 function contactHost(){
 toggleMenu()
-window.location.href="mailto:"+HOST_EMAIL
+window.location.href="mailto:"+pindaoazhu@gmail.com
 }
-</script>
 
+</script>
 </body>
 </html>
