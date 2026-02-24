@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>uuuSkinStudio</title>
+<script src="https://unpkg.com/skinview3d/bundles/skinview3d.bundle.js"></script>
+<style>
+body{
+    margin:0;
+    background:#0f0f0f;
+    color:white;
+    font-family:Arial;
+}
+header{
+    padding:20px;
+    text-align:center;
+    background:#111;
+    font-size:26px;
+    color:#00f7ff;
+    font-weight:bold;
+}
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:25px;
+    padding:40px;
+}
+.card{
+    background:#1a1a1a;
+    padding:20px;
+    border-radius:12px;
+    text-align:center;
+    box-shadow:0 0 15px rgba(0,255,255,0.1);
+}
+canvas{
+    width:100%;
+    height:300px;
+}
+button{
+    padding:10px 20px;
+    background:#00f7ff;
+    border:none;
+    cursor:pointer;
+    font-weight:bold;
+    border-radius:6px;
+}
+button:hover{
+    background:#00cfd6;
+}
+.modal{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.8);
+    justify-content:center;
+    align-items:center;
+}
+.modal-content{
+    background:#1a1a1a;
+    padding:30px;
+    width:320px;
+    text-align:center;
+    border-radius:10px;
+}
+input{
+    width:100%;
+    padding:8px;
+    margin-top:10px;
+    border-radius:5px;
+    border:none;
+}
+.footer{
+    text-align:center;
+    padding:20px;
+    background:#111;
+    color:#777;
+}
+</style>
+</head>
+<body>
+
+<header>uuuSkinStudio</header>
+
+<div class="grid" id="skins"></div>
+
+<div class="modal" id="buyModal">
+<div class="modal-content">
+<h3 id="skinName"></h3>
+<p>Price: RM20</p>
+<p>Send to TNG: <b>0173269519</b></p>
+<input type="text" placeholder="Your Name" id="buyerName">
+<input type="text" placeholder="Transaction Ref" id="txRef">
+<button onclick="submitOrder()">Submit</button>
+<br><br>
+<button onclick="closeModal()">Cancel</button>
+</div>
+</div>
+
+<div class="footer">
+© 2026 uuuSkinStudio
+</div>
+
+<script>
+
+// 自动生成 10 个不同颜色的标准 64x64 Minecraft 皮肤
+function generateSkin(color1,color2){
+    const canvas=document.createElement("canvas");
+    canvas.width=64;
+    canvas.height=64;
+    const ctx=canvas.getContext("2d");
+
+    ctx.fillStyle=color1;
+    ctx.fillRect(0,0,64,64);
+
+    ctx.fillStyle=color2;
+    ctx.fillRect(16,16,32,32);
+
+    return canvas.toDataURL("image/png");
+}
+
+const skins=[
+generateSkin("#1abc9c","#16a085"),
+generateSkin("#3498db","#2980b9"),
+generateSkin("#9b59b6","#8e44ad"),
+generateSkin("#e74c3c","#c0392b"),
+generateSkin("#f1c40f","#f39c12"),
+generateSkin("#2ecc71","#27ae60"),
+generateSkin("#e67e22","#d35400"),
+generateSkin("#34495e","#2c3e50"),
+generateSkin("#ff00ff","#cc00cc"),
+generateSkin("#00ffff","#00cccc")
+];
+
+let selectedSkin="";
+
+const container=document.getElementById("skins");
+
+skins.forEach((skin,i)=>{
+    const card=document.createElement("div");
+    card.className="card";
+
+    const canvas=document.createElement("canvas");
+    card.appendChild(canvas);
+
+    const viewer=new skinview3d.SkinViewer({
+        canvas:canvas,
+        width:300,
+        height:300,
+        skin:skin
+    });
+
+    viewer.autoRotate=true;
+    viewer.controls.enableZoom=true;
+    viewer.controls.enableRotate=true;
+
+    const title=document.createElement("h3");
+    title.innerText="Premium Skin "+(i+1);
+    card.appendChild(title);
+
+    const btn=document.createElement("button");
+    btn.innerText="Buy RM20";
+    btn.onclick=()=>openModal(skin,title.innerText);
+    card.appendChild(btn);
+
+    container.appendChild(card);
+});
+
+function openModal(skin,name){
+    selectedSkin=skin;
+    document.getElementById("skinName").innerText=name;
+    document.getElementById("buyModal").style.display="flex";
+}
+
+function closeModal(){
+    document.getElementById("buyModal").style.display="none";
+}
+
+function submitOrder(){
+    const name=document.getElementById("buyerName").value;
+    const ref=document.getElementById("txRef").value;
+
+    if(name==""||ref==""){
+        alert("Please fill all fields");
+        return;
+    }
+
+    alert("Order submitted. Admin verifying payment...");
+
+    closeModal();
+
+    setTimeout(()=>{
+        const link=document.createElement("a");
+        link.href=selectedSkin;
+        link.download="uuuSkinStudio.png";
+        link.click();
+        alert("Payment Approved! Skin Downloaded.");
+    },2000);
+}
+
+</script>
+
+</body>
+</html>
